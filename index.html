@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <meta name="description" content="стеша — социальные сети" />
+  <title>стеша</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --white: #fff;
+      --soft-white: rgba(255, 255, 255, 0.72);
+      --faint-white: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.24);
+      --overlay: rgba(0, 0, 0, 0.62);
+      --ease-out: cubic-bezier(.16, 1, .3, 1);
+      --transition: 720ms var(--ease-out);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050505;
+      color: var(--white);
+      font-family: "Geist Mono", "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    button,
+    a {
+      color: inherit;
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      border: 0;
+    }
+
+    .page {
+      position: relative;
+      width: 100%;
+      height: 100svh;
+      min-height: 100vh;
+      isolation: isolate;
+      overflow: hidden;
+      background: #050505;
+    }
+
+    .video-frame {
+      position: absolute;
+      inset: 0;
+      z-index: -4;
+      overflow: hidden;
+      background: #050505;
+    }
+
+    .background-video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: translate(-50%, -50%) scale(1.015);
+      transform-origin: center;
+      opacity: 0;
+      filter: brightness(.70) saturate(.84) contrast(1.08);
+      transition:
+        opacity 1.45s var(--ease-out),
+        filter 1.2s var(--ease-out),
+        transform 1.8s var(--ease-out);
+      will-change: transform;
+    }
+
+    .page.started .background-video {
+      opacity: 1;
+      filter: brightness(.74) saturate(.88) contrast(1.06);
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .shade {
+      position: absolute;
+      inset: 0;
+      z-index: -3;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 47%, rgba(0, 0, 0, .04) 0 15%, rgba(0, 0, 0, .18) 56%, rgba(0, 0, 0, .48) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, .16), transparent 28%, transparent 67%, rgba(0, 0, 0, .30)),
+        var(--overlay);
+    }
+
+    .grain {
+      position: absolute;
+      inset: -70%;
+      z-index: -2;
+      pointer-events: none;
+      opacity: .045;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+      animation: grain 900ms steps(2) infinite;
+    }
+
+    @keyframes grain {
+      0% { transform: translate3d(0, 0, 0); }
+      20% { transform: translate3d(-3%, 2%, 0); }
+      40% { transform: translate3d(2%, -4%, 0); }
+      60% { transform: translate3d(4%, 4%, 0); }
+      80% { transform: translate3d(-4%, -2%, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+
+    .content {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding:
+        max(28px, env(safe-area-inset-top))
+        max(24px, env(safe-area-inset-right))
+        max(28px, env(safe-area-inset-bottom))
+        max(24px, env(safe-area-inset-left));
+    }
+
+    .center-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: translateY(1vh);
+    }
+
+    .name {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 6ch;
+      min-height: 1.15em;
+      color: var(--white);
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: .08em;
+      text-indent: .08em;
+      text-transform: lowercase;
+      text-shadow: 0 0 32px rgba(255, 255, 255, .10), 0 8px 28px rgba(0, 0, 0, .44);
+      user-select: none;
+      opacity: 0;
+      transform: translateY(18px) scale(.985);
+      transition: opacity var(--transition), transform var(--transition);
+    }
+
+    .page.started .name {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .letter {
+      display: inline-block;
+      min-width: 1ch;
+      opacity: .46;
+      filter: blur(1.8px);
+      transform: translateY(3px);
+      transition:
+        opacity 240ms ease,
+        filter 240ms ease,
+        transform 420ms var(--ease-out),
+        text-shadow 420ms ease;
+    }
+
+    .letter.settled {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0);
+      text-shadow: 0 0 22px rgba(255, 255, 255, .18);
+    }
+
+    .socials {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 28px;
+      padding: 7px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 999px;
+      background: rgba(5, 5, 5, .22);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .035);
+      backdrop-filter: blur(14px) saturate(1.15);
+      -webkit-backdrop-filter: blur(14px) saturate(1.15);
+      opacity: 0;
+      transform: translateY(16px) scale(.97);
+      pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+
+    .page.ready .socials {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .social-link,
+    .sound-button {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      color: rgba(255, 255, 255, .92);
+      border: 1px solid transparent;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      overflow: hidden;
+      transition:
+        color 220ms ease,
+        transform 240ms var(--ease-out),
+        background 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease;
+    }
+
+    .social-link::before,
+    .sound-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(255, 255, 255, .10);
+      opacity: 0;
+      transform: scale(.65);
+      transition: opacity 220ms ease, transform 300ms var(--ease-out);
+    }
+
+    .social-link:hover,
+    .social-link:focus-visible,
+    .sound-button:hover,
+    .sound-button:focus-visible {
+      color: #fff;
+      border-color: rgba(255, 255, 255, .18);
+      transform: translateY(-3px);
+      outline: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+    }
+
+    .social-link:hover::before,
+    .social-link:focus-visible::before,
+    .sound-button:hover::before,
+    .sound-button:focus-visible::before {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .social-link:active,
+    .sound-button:active {
+      transform: scale(.91);
+    }
+
+    .social-link svg,
+    .sound-button svg {
+      position: relative;
+      z-index: 1;
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .start-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-height: 100%;
+      padding: 24px;
+      color: var(--white);
+      cursor: pointer;
+      background: #050505;
+      transition: opacity 900ms var(--ease-out), visibility 900ms ease;
+    }
+
+    .page.started .start-screen {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .start-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .start-symbol {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, .82);
+      font-size: 12px;
+      box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .025);
+      animation: symbolPulse 2.1s var(--ease-out) infinite;
+    }
+
+    .start-text {
+      color: var(--soft-white);
+      font-size: clamp(.68rem, 1.2vw, .78rem);
+      font-weight: 400;
+      letter-spacing: .19em;
+      text-transform: lowercase;
+      text-align: center;
+      text-shadow: 0 2px 18px rgba(0, 0, 0, .55);
+      animation: breathe 2.1s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: .46; }
+      50% { opacity: .92; }
+    }
+
+    @keyframes symbolPulse {
+      0%, 100% { transform: scale(1); border-color: rgba(255, 255, 255, .18); }
+      50% { transform: scale(1.06); border-color: rgba(255, 255, 255, .34); }
+    }
+
+    .sound-button {
+      position: absolute;
+      right: max(18px, env(safe-area-inset-right));
+      bottom: max(18px, env(safe-area-inset-bottom));
+      z-index: 4;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      background: rgba(5, 5, 5, .24);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition), transform 240ms var(--ease-out), background 220ms ease;
+    }
+
+    .page.started .sound-button {
+      opacity: .76;
+      pointer-events: auto;
+    }
+
+    .sound-button .icon-muted,
+    .sound-button.muted .icon-sound {
+      display: none;
+    }
+
+    .sound-button.muted .icon-muted {
+      display: block;
+    }
+
+    .loading-note {
+      position: absolute;
+      left: 50%;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 11;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, .50);
+      font-size: .64rem;
+      letter-spacing: .12em;
+      text-transform: lowercase;
+      opacity: 0;
+      transition: opacity 240ms ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .page.loading .loading-note {
+      opacity: 1;
+    }
+
+    @media (orientation: portrait) {
+      .background-video,
+      .page.started .background-video {
+        width: 100%;
+        height: 100%;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .name {
+        font-size: clamp(3rem, 15vw, 5.4rem);
+        letter-spacing: .06em;
+        text-indent: .06em;
+      }
+
+      .socials {
+        margin-top: 25px;
+      }
+    }
+
+    @media (orientation: landscape) {
+      .background-video {
+        width: 100vh;
+        height: 100vw;
+        max-width: none;
+        max-height: none;
+        transform: translate(-50%, -50%) rotate(-90deg) scale(1.02);
+      }
+
+      .page.started .background-video {
+        transform: translate(-50%, -50%) rotate(-90deg) scale(1);
+      }
+    }
+
+    @media (max-height: 480px) and (orientation: landscape) {
+      .center-stack {
+        transform: none;
+      }
+
+      .name {
+        font-size: clamp(2.7rem, 13vh, 4rem);
+      }
+
+      .socials {
+        margin-top: 18px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page" id="page">
+    <div class="video-frame" aria-hidden="true">
+      <video
+        class="background-video"
+        id="backgroundVideo"
+        playsinline
+        webkit-playsinline
+        preload="auto"
+        loop
+      >
+        <source src="assets/background.mp4" type="video/mp4" />
+        <source src="assets/background.mov" type="video/quicktime" />
+      </video>
+    </div>
+
+    <div class="shade" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <section class="content" aria-label="стеша">
+      <div class="center-stack">
+        <h1 class="name" id="animatedName" aria-label="стеша"></h1>
+
+        <nav class="socials" aria-label="Социальные сети">
+          <a
+            class="social-link"
+            href="https://www.tiktok.com/@liubliuerena"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Открыть TikTok liubliuerena"
+            title="TikTok"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-2-2.75V9.4a6.34 6.34 0 1 0 5.45 6.27V8.73a8.16 8.16 0 0 0 4.77 1.52V6.81c-.34 0-.67-.04-1-.12Z" />
+            </svg>
+          </a>
+
+          <a
+            class="social-link"
+            href="https://t.me/liubliuerena"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Открыть Telegram liubliuerena"
+            title="Telegram"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21.94 4.67c.28-1.18-.44-1.64-1.28-1.33L2.5 10.35c-1.24.48-1.22 1.17-.21 1.48l4.66 1.45 1.8 5.58c.22.61.11.85.75.85.49 0 .71-.23.98-.49l2.36-2.3 4.91 3.63c.91.5 1.56.24 1.79-.84l2.4-15.04ZM8.63 12.95l9.1-5.74c.45-.27.86-.13.52.17l-7.51 6.77-.29 3.12-1.82-4.32Z" />
+            </svg>
+          </a>
+
+          <a
+            class="social-link"
+            href="https://www.instagram.com/liubliu.erenaa/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Открыть Instagram liubliu.erenaa"
+            title="Instagram"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7.75 2h8.5A5.76 5.76 0 0 1 22 7.75v8.5A5.76 5.76 0 0 1 16.25 22h-8.5A5.76 5.76 0 0 1 2 16.25v-8.5A5.76 5.76 0 0 1 7.75 2Zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5Zm8.95 1.35a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3ZM12 6.87A5.13 5.13 0 1 1 12 17.13 5.13 5.13 0 0 1 12 6.87Zm0 1.8A3.33 3.33 0 1 0 12 15.33 3.33 3.33 0 0 0 12 8.67Z" />
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </section>
+
+    <button class="sound-button" id="soundButton" type="button" aria-label="Выключить звук" title="Звук">
+      <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 9v6h4l5 4V5L7 9H3Zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12Zm-2.5-8.77v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54Z" />
+      </svg>
+      <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 9v6h4l5 4V5L7 9H3Zm13.59 3 2.7 2.7 1.41-1.41L18 10.59l2.7-2.7-1.41-1.41-2.7 2.7-2.7-2.7-1.41 1.41 2.7 2.7-2.7 2.7 1.41 1.41 2.7-2.7Z" />
+      </svg>
+    </button>
+
+    <button class="start-screen" id="startScreen" type="button" aria-label="Запустить сайт со звуком">
+      <span class="start-inner">
+        <span class="start-symbol" aria-hidden="true">↵</span>
+        <span class="start-text" id="startText">нажмите любую кнопку</span>
+      </span>
+    </button>
+
+    <div class="loading-note">загрузка видео…</div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const page = document.getElementById("page");
+      const video = document.getElementById("backgroundVideo");
+      const startScreen = document.getElementById("startScreen");
+      const startText = document.getElementById("startText");
+      const nameElement = document.getElementById("animatedName");
+      const soundButton = document.getElementById("soundButton");
+
+      const finalWord = "стеша";
+      const initialVolume = 0.26;
+      const alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюя0123456789";
+      let started = false;
+      let animating = false;
+
+      const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+      startText.textContent = isTouchDevice ? "нажмите на экран" : "нажмите любую кнопку";
+
+      function randomChar() {
+        return alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+
+      function wait(ms) {
+        return new Promise(resolve => window.setTimeout(resolve, ms));
+      }
+
+      function createLetters() {
+        nameElement.replaceChildren();
+
+        return [...finalWord].map((_, index) => {
+          const letter = document.createElement("span");
+          letter.className = "letter";
+          letter.textContent = randomChar();
+          letter.setAttribute("aria-hidden", "true");
+          letter.dataset.index = String(index);
+          nameElement.appendChild(letter);
+          return letter;
+        });
+      }
+
+      async function animateWord() {
+        if (animating) return;
+        animating = true;
+
+        const letters = createLetters();
+        const settled = Array(finalWord.length).fill(false);
+        const scrambleInterval = 38;
+
+        for (let index = 0; index < finalWord.length; index += 1) {
+          const duration = 190 + index * 26;
+          const startedAt = performance.now();
+
+          while (performance.now() - startedAt < duration) {
+            letters.forEach((letter, letterIndex) => {
+              if (!settled[letterIndex]) {
+                letter.textContent = randomChar();
+              }
+            });
+
+            await wait(scrambleInterval);
+          }
+
+          settled[index] = true;
+          letters[index].textContent = finalWord[index];
+          letters[index].classList.add("settled");
+          await wait(86);
+        }
+
+        await wait(260);
+        page.classList.add("ready");
+      }
+
+      async function startExperience() {
+        if (started) return;
+        started = true;
+        page.classList.add("loading");
+
+        try {
+          video.muted = false;
+          video.volume = initialVolume;
+          await video.play();
+        } catch (error) {
+          video.muted = true;
+          soundButton.classList.add("muted");
+          soundButton.setAttribute("aria-label", "Включить звук");
+
+          try {
+            await video.play();
+          } catch (playbackError) {
+            console.error("Не удалось запустить видео:", playbackError);
+          }
+        }
+
+        page.classList.remove("loading");
+        page.classList.add("started");
+        animateWord();
+      }
+
+      async function toggleSound(event) {
+        event.stopPropagation();
+
+        if (video.paused) {
+          try {
+            await video.play();
+          } catch (error) {
+            console.error("Не удалось продолжить видео:", error);
+          }
+        }
+
+        video.muted = !video.muted;
+        soundButton.classList.toggle("muted", video.muted);
+        soundButton.setAttribute("aria-label", video.muted ? "Включить звук" : "Выключить звук");
+      }
+
+      startScreen.addEventListener("click", startExperience, { once: true });
+
+      window.addEventListener("keydown", event => {
+        if (started) return;
+
+        if (["Shift", "Control", "Alt", "Meta", "CapsLock", "NumLock", "ScrollLock"].includes(event.key)) {
+          return;
+        }
+
+        startExperience();
+      });
+
+      soundButton.addEventListener("click", toggleSound);
+      video.addEventListener("waiting", () => page.classList.add("loading"));
+      video.addEventListener("playing", () => page.classList.remove("loading"));
+
+      video.addEventListener("error", () => {
+        page.classList.remove("loading");
+        startText.textContent = "добавьте assets/background.mp4";
+        console.error("Видео не найдено. Добавьте файл assets/background.mp4");
+      });
+    })();
+  </script>
+</body>
+</html>
